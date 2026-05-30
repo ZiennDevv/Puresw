@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PURESTATUS — Upload & Token Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f0d;--s1:#0f1a15;--s2:#142019;--border:#1e3028;
+  --teal:#00c896;--teal2:#00a878;--teal-dim:rgba(0,200,150,0.12);
+  --amber:#f5a623;--red:#ff4d6d;--text:#d8efe8;--muted:#4a7060;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--display);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,150,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,150,0.025) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+.wrap{max-width:680px;margin:0 auto;padding:24px 16px 80px;position:relative;z-index:1}
+
+/* HEADER */
+.hdr{text-align:center;padding:32px 0 32px}
+.hdr-badge{display:inline-flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:100px;padding:7px 18px;margin-bottom:20px;font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.1em;text-transform:uppercase}
+.hdr-badge::before{content:'●';animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(44px,10vw,76px);font-weight:800;line-height:.9;letter-spacing:-.04em;background:linear-gradient(135deg,#fff 0%,var(--teal) 55%,#00ff99 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.hdr-sub{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.hdr-sub b{color:var(--teal)}
+
+/* BOT STATUS */
+.bot-status{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:100px;padding:10px 24px;margin-bottom:28px;font-family:var(--mono);font-size:13px}
+.bot-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:blink 2s infinite;flex-shrink:0}
+
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--teal)}
+.card-body{padding:20px}
+
+/* TABS */
+.tabs{display:grid;grid-template-columns:1fr 1fr}
+.tab{padding:14px;text-align:center;cursor:pointer;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);transition:all .2s;border:none;background:var(--bg);display:flex;align-items:center;justify-content:center;gap:6px;border-bottom:2px solid transparent}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--s1)}
+
+/* MODE */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.mode-btn{background:var(--s2);border:2px solid var(--border);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.mode-btn:hover{border-color:var(--teal);transform:translateY(-2px)}
+.mode-btn.sel-fast{border-color:#ffd600;background:rgba(255,214,0,.1)}
+.mode-btn.sel-normal{border-color:#39ff6e;background:rgba(57,255,110,.1)}
+.mode-btn.sel-standard{border-color:var(--teal);background:var(--teal-dim)}
+.mode-ico{font-size:20px;display:block;margin-bottom:5px}
+.mode-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block}
+.mode-desc{font-size:9px;color:var(--muted);font-family:var(--mono);display:block;margin-top:3px;line-height:1.4}
+.mode-fast{color:#ffd600}.mode-normal{color:#39ff6e}.mode-standard{color:var(--teal)}
+
+/* TYPE PICKER */
+.type-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.type-btn{background:var(--s2);border:2px solid var(--border);border-radius:10px;padding:18px 12px;cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.type-btn:hover{border-color:var(--teal)}
+.type-btn.sel{border-color:var(--teal);background:var(--teal-dim)}
+.type-ico{font-size:26px;display:block;margin-bottom:6px}
+.type-name{font-size:13px;font-weight:700;display:block}
+.type-limit{font-size:10px;font-family:var(--mono);color:var(--muted);background:rgba(0,0,0,.3);border-radius:100px;padding:3px 10px;display:inline-block;margin-top:5px}
+
+/* DROPZONE */
+.dz{border:2px dashed var(--border);border-radius:12px;padding:44px 24px;text-align:center;cursor:pointer;transition:all .25s;background:var(--s2);margin-bottom:14px}
+.dz:hover,.dz.drag-over{border-color:var(--teal);background:var(--teal-dim)}
+.dz.has-file{border-style:solid;border-color:var(--teal);padding:20px;cursor:default}
+.dz-ico{font-size:32px;margin-bottom:10px}
+.dz-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.dz-sub{font-size:12px;color:var(--muted);font-family:var(--mono)}
+input[type=file]{display:none}
+
+/* FILE PREVIEW */
+.fp{display:flex;align-items:center;gap:12px}
+.fp-thumb{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.fp-ph{width:60px;height:60px;border-radius:8px;background:rgba(0,200,150,.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.fp-info{flex:1;text-align:left;min-width:0}
+.fp-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.fp-rm{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:var(--red);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;font-family:var(--mono);transition:all .2s;white-space:nowrap;flex-shrink:0}
+.fp-rm:hover{background:rgba(255,77,109,.25)}
+
+/* ROTATE */
+.rotate-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.rotate-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--muted);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.rotate-btn:hover{border-color:var(--teal);color:var(--text)}
+
+/* FILE DETAIL */
+.file-detail{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:4px 0;margin-top:12px}
+.detail-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-ico{font-size:14px;width:22px;text-align:center;flex-shrink:0}
+.detail-key{color:var(--muted);font-family:var(--mono);font-size:11px;min-width:80px;flex-shrink:0}
+.detail-val{color:var(--text);font-weight:700;font-size:13px;word-break:break-all}
+
+/* URL INPUT */
+.url-info{font-size:12px;font-family:var(--mono);color:var(--muted);background:rgba(0,200,150,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;line-height:1.7}
+.url-info b{color:var(--teal)}
+.url-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:13px;padding:12px 16px;transition:border-color .2s;outline:none}
+.url-input:focus{border-color:var(--teal)}
+.url-input::placeholder{color:var(--muted)}
+
+/* CAPTION */
+.field-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;display:block}
+.field-textarea{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--display);font-size:13px;padding:12px 16px;resize:vertical;min-height:54px;transition:border-color .2s;outline:none}
+.field-textarea:focus{border-color:var(--teal)}
+.char-count{font-size:10px;font-family:var(--mono);color:var(--muted);text-align:right;margin-top:4px}
+
+/* MAIN BUTTON */
+.btn-main{width:100%;padding:16px;background:linear-gradient(135deg,var(--teal),var(--teal2));border:none;border-radius:12px;color:#000;font-family:var(--display);font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:18px}
+.btn-main:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,200,150,.35)}
+.btn-main:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* PROGRESS */
+.progress-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:14px;display:none}
+.progress-card.show{display:block}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.prog-label{font-size:13px;font-family:var(--mono);color:var(--teal)}
+.prog-pct{font-size:16px;font-family:var(--mono);font-weight:700}
+.prog-bar-bg{height:8px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:8px}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--teal),#39ff6e);border-radius:100px;width:0%;transition:width .4s}
+.prog-meta{display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono)}
+.prog-speed{color:var(--teal)}
+.prog-time{color:var(--muted)}
+.prog-size-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;text-align:center}
+.prog-size-val{font-size:20px;font-weight:800;font-family:var(--mono);color:var(--teal)}
+.prog-size-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.prog-warn{font-size:12px;font-family:var(--mono);color:var(--amber);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:10px 14px;margin-top:12px;text-align:center;line-height:1.6}
+
+/* RESULT */
+.result-card{background:rgba(0,200,150,.05);border:1px solid rgba(0,200,150,.3);border-radius:16px;margin-bottom:14px;display:none;animation:fadeUp .4s ease;overflow:hidden}
+.result-card.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.result-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;padding:16px 20px;border-bottom:1px solid rgba(0,200,150,.2);font-family:var(--mono);display:flex;align-items:center;gap:8px}
+
+/* TOKEN BOX */
+.token-box{background:#000;border:1px solid var(--border);border-radius:10px;padding:16px;font-family:var(--mono);font-size:11px;color:var(--teal);line-height:1.9;word-break:break-all;margin-bottom:12px;max-height:150px;overflow-y:auto}
+.token-expiry{display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--mono);color:var(--muted);margin-bottom:14px}
+.token-expiry b{color:var(--text);font-size:15px}
+
+/* COPY BUTTON */
+.btn-copy{width:100%;padding:13px;background:var(--s2);border:1px solid var(--teal);border-radius:10px;color:var(--teal);font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.btn-copy:hover{background:var(--teal-dim)}
+.btn-copy.copied{border-color:#39ff6e;color:#39ff6e}
+
+/* CAPTION UPDATE */
+.caption-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:6px}
+.caption-in{background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--display);font-size:13px;padding:10px 14px;outline:none;transition:border-color .2s;min-width:0}
+.caption-in:focus{border-color:var(--teal)}
+.btn-sm{padding:10px 14px;border-radius:10px;font-size:12px;font-family:var(--mono);font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;border:1px solid}
+.btn-update{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.btn-update:hover{background:var(--teal);color:#000}
+.btn-hapus{background:rgba(255,77,109,.08);border-color:rgba(255,77,109,.3);color:var(--red)}
+.btn-hapus:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ROOM PICKER */
+.room-grid{display:flex;flex-direction:column;gap:8px}
+.room-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;border-radius:10px;background:linear-gradient(135deg,#25d366,#128c7e);border:none;color:#fff;font-family:var(--display);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s}
+.room-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,211,102,.3)}
+
+/* ACTION ROW */
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-secondary{padding:13px;border-radius:10px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-secondary:hover{border-color:var(--teal);color:var(--teal)}
+.btn-amber{padding:13px;border-radius:10px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-amber:hover{background:var(--amber);color:#000;border-color:var(--amber)}
+
+/* DONATUR */
+.qris-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center}
+.qris-title{font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:8px}
+.qris-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px}
+.qris-img{width:100%;max-width:280px;border-radius:12px;border:2px solid var(--border);display:block;margin:0 auto 16px}
+
+/* ERROR */
+.err-box{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);border-radius:10px;padding:12px 16px;margin-top:12px;font-size:12px;font-family:var(--mono);color:var(--red);display:none}
+.err-box.show{display:block}
+
+/* PANDUAN */
+.info-list{list-style:none}
+.info-list li{font-size:12px;font-family:var(--mono);color:var(--muted);padding:6px 0;display:flex;gap:10px;align-items:flex-start;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.03)}
+.info-list li:last-child{border-bottom:none}
+.info-list li b{color:var(--text)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.87);display:flex;align-items:flex-end;justify-content:center;z-index:999;padding:16px;animation:fadein .2s}
+.modal-bg.hide{display:none}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:20px 20px 16px 16px;padding:24px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-head h3{font-size:15px;font-weight:700;color:var(--amber)}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--s2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{color:var(--text);border-color:var(--text)}
+
+/* UTILS */
+.hidden{display:none!important}
+.mt-8{margin-top:8px}
+.mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
+.p-20{padding:20px}
+footer{text-align:center;margin-top:40px;font-size:11px;font-family:var(--mono);color:var(--muted)}
+footer a{color:var(--teal);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-badge">Status Bot Online ✓</div>
+    <h1>PURE-STATUS</h1>
+    <p class="hdr-sub">Upload media → Pilih mode → Dapatkan <b>Token</b> → Paste ke Bot WA</p>
+  </div>
+
+  <!-- BOT STATUS BAR -->
+  <div class="bot-status">
+    <div class="bot-dot"></div>
+    <span>STATUS BOT: <b>ONLINE</b> ✅</span>
+
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="card" id="formCard">
+
+    <!-- TABS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
+      <button class="tab active" id="tabFile" onclick="switchTab('file')">☁️ Upload File</button>
+      <button class="tab" id="tabUrl" onclick="switchTab('url')">🔗 Via URL</button>
+    </div>
+
+    <div class="card-body">
+
+      <!-- MODE SELECTOR -->
+      <div class="modes">
+        <div class="mode-btn mode-fast" id="modeFast" onclick="setMode('fast')">
+          <span class="mode-ico">🟡</span>
+          <span class="mode-name">Fast</span>
+          <span class="mode-desc">Encode kilat<br>kualitas HD</span>
+        </div>
+        <div class="mode-btn mode-normal sel-normal" id="modeNormal" onclick="setMode('normal')">
+          <span class="mode-ico">🟢</span>
+          <span class="mode-name">Normal</span>
+          <span class="mode-desc">Balance<br>default</span>
+        </div>
+        <div class="mode-btn mode-standard" id="modeStandard" onclick="setMode('standard')">
+          <span class="mode-ico">🔵</span>
+          <span class="mode-name">Standard</span>
+          <span class="mode-desc">File terkecil<br>encode lama</span>
+        </div>
+      </div>
+
+      <!-- PANEL FILE -->
+      <div id="panelFile">
+        <!-- Type picker -->
+        <div class="type-row">
+          <div class="type-btn" id="typeImg" onclick="setType('image')">
+            <span class="type-ico">🖼️</span>
+            <span class="type-name">GAMBAR</span>
+            <span class="type-limit">Max 100MB</span>
+          </div>
+          <div class="type-btn sel" id="typeVid" onclick="setType('video')">
+            <span class="type-ico">🎬</span>
+            <span class="type-name">VIDEO</span>
+            <span class="type-limit">Max 500MB</span>
+          </div>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="dz" id="dropzone">
+          <div id="dzDefault" onclick="triggerInput()">
+            <div class="dz-ico">☁️</div>
+            <div class="dz-title">Drag & Drop atau Klik untuk Upload</div>
+            <div class="dz-sub" id="dzSub">Boleh video atau gambar</div>
+            <div class="dz-sub mt-8">Video max 500MB • Gambar max 100MB</div>
+          </div>
+          <div id="dzPreview" class="hidden">
+            <div class="fp">
+              <div class="fp-ph" id="fpPh">📄</div>
+              <img class="fp-thumb hidden" id="fpThumb" alt="preview"/>
+              <div class="fp-info">
+                <div class="fp-name" id="fpName">—</div>
+                <div class="fp-meta" id="fpMeta">—</div>
+              </div>
+              <button class="fp-rm" onclick="removeFile(event)">✕ Hapus</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="fileInput" onchange="handleFile(this.files[0])"/>
+
+        <!-- Rotate (gambar saja) -->
+        <div id="rotateControl" class="hidden">
+          <div class="rotate-row">
+            <div class="rotate-btn" onclick="rotate(-90)">↺ Rotate Kiri</div>
+            <div class="rotate-btn" onclick="rotate(90)">↻ Rotate Kanan</div>
+            <div class="rotate-btn" onclick="rotate(0)">↺ Reset</div>
+          </div>
+        </div>
+
+        <!-- Detail File -->
+        <div class="file-detail hidden" id="fileDetail">
+          <div class="detail-row">
+            <div class="detail-ico">📄</div>
+            <div class="detail-key">Nama File</div>
+            <div class="detail-val" id="dName">—</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-ico">⚖️</div>
+            <div class="detail-key">Ukuran</div>
+            <div class="detail-val" id="dSize">—</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-ico">📋</div>
+            <div class="detail-key">Tipe</div>
+            <div class="detail-val" id="dType">—</div>
+          </div>
+          <div class="detail-row hidden" id="dResRow">
+            <div class="detail-ico">📐</div>
+            <div class="detail-key">Resolusi</div>
+            <div class="detail-val" id="dRes">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL URL -->
+      <div id="panelUrl" class="hidden">
+        <div class="url-info">
+          📌 Paste URL file dari <b>Catbox</b>, <b>Litterbox</b>, <b>Tmpfiles</b>, atau hosting lain.<br>
+          Token digenerate otomatis. Support 500MB+
+        </div>
+        <input class="url-input" id="urlInput" type="url"
+          placeholder="https://litterbox.catbox.moe/abc123.mp4"
+          oninput="handleUrlInput(this.value)"/>
+        <div class="detail-row mt-12 hidden" id="urlDetailRow"
+          style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div class="detail-ico">🔗</div>
+          <div class="detail-key">URL</div>
+          <div class="detail-val" id="urlPreview" style="font-size:11px">—</div>
+        </div>
+      </div>
+
+      <!-- CAPTION -->
+      <div class="mt-16">
+        <label class="field-label">✏️ Caption (Opsional)</label>
+        <textarea class="field-textarea" id="captionInput" maxlength="150"
+          placeholder="Ketik caption status kamu..."
+          oninput="updateCharCount('captionInput','charCount1')"></textarea>
+        <div class="char-count" id="charCount1">0/150 karakter</div>
+      </div>
+
+      <!-- ERROR -->
+      <div class="err-box" id="errBox"></div>
+
+      <!-- UPLOAD BUTTON -->
+      <button class="btn-main" id="btnUpload" onclick="startUpload()" disabled>
+        🚀 Launch Upload & Generate Token
+      </button>
+
+    </div>
+  </div>
+
+  <!-- PROGRESS CARD -->
+  <div class="progress-card" id="progressCard">
+    <div class="card-head">☁️ Upload ke Server...</div>
+    <div class="p-20">
+      <div class="prog-row">
+        <span class="prog-label" id="progLabel">Memulai...</span>
+        <span class="prog-pct" id="progPct">0%</span>
+      </div>
+      <div class="prog-bar-bg">
+        <div class="prog-bar" id="progBar"></div>
+      </div>
+      <div class="prog-meta">
+        <span class="prog-speed" id="progSpeed">⚡ 0 MB/s</span>
+        <span class="prog-time" id="progTime">⏱ Memulai...</span>
+      </div>
+      <div class="prog-size-box">
+        <div class="prog-size-val" id="progSizeVal">0.00 MB / 0.00 MB</div>
+        <div class="prog-size-sub">Progress Upload</div>
+      </div>
+      <div class="prog-warn">⚠️ JANGAN TUTUP atau REFRESH halaman ini!<br>Upload sedang berjalan ke server</div>
+    </div>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">✅ Upload Berhasil! 🎉</div>
+
+    <div class="card-head">🔑 Token Dasar:</div>
+    <div class="p-20">
+      <div class="token-box" id="tokenBox"></div>
+      <div class="token-expiry">⏱ Kadaluarsa: <b id="tokenCountdown">120:00</b></div>
+      <button class="btn-copy" id="btnCopy" onclick="copyToken()">📋 Salin Token Dasar</button>
+    </div>
+
+    <div class="card-head">✏️ Tambah Caption (Opsional)</div>
+    <div class="p-20">
+      <div class="caption-row">
+        <input class="caption-in" id="captionResult" maxlength="150"
+          placeholder="Ketik caption di sini..."
+          oninput="updateCharCount('captionResult','charCount2')"/>
+        <button class="btn-sm btn-update" onclick="updateCaption()">↺ Update</button>
+        <button class="btn-sm btn-hapus" onclick="clearCaption()">Hapus</button>
+      </div>
+      <div class="char-count" id="charCount2">0/150 karakter</div>
+    </div>
+
+    <div class="card-head mt-12">📄 Detail File</div>
+    <div class="p-20">
+      <div class="file-detail">
+        <div class="detail-row">
+          <div class="detail-ico">📄</div><div class="detail-key">File</div>
+          <div class="detail-val" id="rName">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-ico">⚖️</div><div class="detail-key">Ukuran</div>
+          <div class="detail-val" id="rSize">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-ico">⏱</div><div class="detail-key">Waktu Upload</div>
+          <div class="detail-val" id="rTime">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-ico">🔧</div><div class="detail-key">Mode</div>
+          <div class="detail-val" id="rMode">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-head mt-12">📱 Pilih Room WhatsApp</div>
+    <div class="p-20">
+      <div class="room-grid" id="roomGrid"></div>
+    </div>
+
+    <div class="p-20" style="padding-top:0">
+      <div class="action-row">
+        <button class="btn-secondary" onclick="resetAll()">↺ Upload Lagi</button>
+        <button class="btn-amber" onclick="showTestModal()">✏️ Test Token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QRIS SUPPORT -->
+  <div class="qris-card">
+    <div class="qris-title">💳 Support via QRIS</div>
+    <div class="qris-sub">Scan QRIS di bawah untuk mendukung PURESTATUS ❤️</div>
+    <img class="qris-img" src="https://files.catbox.moe/ctyfql.png" alt="QRIS PURESTATUS" loading="lazy"/>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--muted)">Semua bank & e-wallet support · Nominal bebas</div>
+  </div>
+
+  <!-- PANDUAN -->
+  <div class="card">
+    <div class="card-head">📖 Panduan Penggunaan</div>
+    <div class="card-body">
+      <ul class="info-list">
+        <li><span>1️⃣</span><span>Pilih mode encode: Fast / Normal / Standard</span></li>
+        <li><span>2️⃣</span><span>Upload file atau paste URL media langsung</span></li>
+        <li><span>3️⃣</span><span>Tambahkan caption opsional jika mau</span></li>
+        <li><span>4️⃣</span><span>Klik <b>Launch Upload & Generate Token</b></span></li>
+        <li><span>5️⃣</span><span>Copy token yang muncul</span></li>
+        <li><span>6️⃣</span><span>Join grup WA bot, paste token: <b>.ps WXAI-xxx...</b></span></li>
+        <li><span>7️⃣</span><span>Bot encode & kirim hasil langsung ke WA kamu! ✅</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>PURESTATUS HD — Proses encode dilakukan oleh bot WhatsApp</p>
+    <p style="margin-top:6px">Powered by <a href="#">Wangxie-AI</a> ✨</p>
+  </footer>
+</div>
+
+<!-- TEST TOKEN MODAL -->
+<div class="modal-bg hide" id="testModal" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>✏️ Test Token</h3>
+      <button class="modal-close" onclick="closeTestModal()">✕</button>
+    </div>
+    <label class="field-label">Paste Token di sini</label>
+    <textarea class="field-textarea" id="testTokenInput" rows="5"
+      placeholder="WXAI-NORMAL-ey..."></textarea>
+    <button class="btn-main" onclick="doTestToken()">🔍 Decode & Cek Token</button>
+    <div id="testResult" style="margin-top:16px;font-family:var(--mono);font-size:12px;line-height:1.8;word-break:break-all;display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px"></div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG — edit sesuai kebutuhan ──────────────────────────────────────────
+const CFG = {
+  tokenExpirySec: 7200,          // 2 jam
+  maxFileMB: 500,
+  rooms: [
+  { label: 'Grup PURESTATUS', link: 'https://chat.whatsapp.com/DG534KR0R6p7CQk3QyRyDO' },
+],
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S = {
+  tab: 'file', type: 'video', mode: 'normal',
+  file: null, urlVal: '', rotation: 0,
+  token: '', tokenExpAt: 0,
+  countdown: null,
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  renderRooms()
+
+  // Drag & drop
+  const dz = document.getElementById('dropzone')
+  dz.addEventListener('dragover', e => {
+    e.preventDefault()
+    if (!S.file) dz.classList.add('drag-over')
+  })
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over')
+    if (!S.file && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])
+  })
+})
+
+function renderRooms() {
+  document.getElementById('roomGrid').innerHTML = CFG.rooms.map(r =>
+    `<a class="room-btn" href="${r.link}" target="_blank">
+      ${r.channel ? '📢' : '📱'} ${r.label}
+    </a>`
+  ).join('')
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  S.tab = tab
+  document.getElementById('tabFile').classList.toggle('active', tab === 'file')
+  document.getElementById('tabUrl').classList.toggle('active', tab === 'url')
+  document.getElementById('panelFile').classList.toggle('hidden', tab !== 'file')
+  document.getElementById('panelUrl').classList.toggle('hidden', tab !== 'url')
+  checkBtn()
+}
+
+// ─── MODE ─────────────────────────────────────────────────────────────────────
+function setMode(m) {
+  S.mode = m
+  ;['fast','normal','standard'].forEach(x => {
+    const el = document.getElementById('mode' + x.charAt(0).toUpperCase() + x.slice(1))
+    el.className = `mode-btn mode-${x}` + (x === m ? ` sel-${x}` : '')
+  })
+}
+
+// ─── TYPE ─────────────────────────────────────────────────────────────────────
+function setType(t) {
+  S.type = t
+  document.getElementById('typeImg').classList.toggle('sel', t === 'image')
+  document.getElementById('typeVid').classList.toggle('sel', t === 'video')
+  document.getElementById('dzSub').textContent = t === 'image' ? 'Upload file gambar' : 'Upload file video'
+  document.getElementById('fileInput').accept = t === 'image' ? 'image/*' : 'video/*'
+  removeFile(null)
+}
+
+// ─── FILE HANDLING ────────────────────────────────────────────────────────────
+function triggerInput() {
+  if (!S.file) document.getElementById('fileInput').click()
+}
+
+function handleFile(file) {
+  if (!file) return
+  const isImg = file.type.startsWith('image/')
+  const isVid = file.type.startsWith('video/')
+  if (!isImg && !isVid) { showErr('File tidak didukung! Pilih foto atau video.'); return }
+  const maxMB = isImg ? 100 : 500
+  if (file.size / 1024 / 1024 > maxMB) {
+    showErr(`File terlalu besar! Maks ${maxMB}MB untuk ${isImg ? 'gambar' : 'video'}`); return
+  }
+
+  S.file = file
+  const dz = document.getElementById('dropzone')
+  dz.classList.add('has-file')
+
+  document.getElementById('dzDefault').classList.add('hidden')
+  document.getElementById('dzPreview').classList.remove('hidden')
+  document.getElementById('fpName').textContent = file.name
+  document.getElementById('fpMeta').textContent = `${fmtSize(file.size)} · ${isImg ? 'Gambar' : 'Video'} · ${file.type}`
+
+  if (isImg) {
+    const url = URL.createObjectURL(file)
+    const img = document.getElementById('fpThumb')
+    img.src = url; img.classList.remove('hidden')
+    document.getElementById('fpPh').classList.add('hidden')
+    document.getElementById('rotateControl').classList.remove('hidden')
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      document.getElementById('dRes').textContent = `${tmpImg.width} × ${tmpImg.height}`
+      document.getElementById('dResRow').classList.remove('hidden')
+    }
+    tmpImg.src = url
+  } else {
+    document.getElementById('fpPh').textContent = '🎬'
+    document.getElementById('fpPh').classList.remove('hidden')
+    document.getElementById('fpThumb').classList.add('hidden')
+    document.getElementById('rotateControl').classList.add('hidden')
+    document.getElementById('dResRow').classList.add('hidden')
+  }
+
+  document.getElementById('dName').textContent = file.name
+  document.getElementById('dSize').textContent = fmtSize(file.size)
+  document.getElementById('dType').textContent = isImg ? 'Gambar' : 'Video'
+  document.getElementById('fileDetail').classList.remove('hidden')
+
+  clearErr(); checkBtn()
+}
+
+function removeFile(e) {
+  if (e) e.stopPropagation()
+  S.file = null; S.rotation = 0
+  const dz = document.getElementById('dropzone')
+  dz.classList.remove('has-file')
+  document.getElementById('dzDefault').classList.remove('hidden')
+  document.getElementById('dzPreview').classList.add('hidden')
+  document.getElementById('rotateControl').classList.add('hidden')
+  document.getElementById('fileDetail').classList.add('hidden')
+  document.getElementById('fileInput').value = ''
+  document.getElementById('fpThumb').src = ''
+  document.getElementById('fpThumb').classList.add('hidden')
+  document.getElementById('fpPh').classList.remove('hidden')
+  clearErr(); checkBtn()
+}
+
+function rotate(deg) {
+  S.rotation = deg === 0 ? 0 : (S.rotation + deg + 360) % 360
+  document.getElementById('fpThumb').style.transform = `rotate(${S.rotation}deg)`
+}
+
+function handleUrlInput(val) {
+  S.urlVal = val.trim()
+  const row = document.getElementById('urlDetailRow')
+  if (S.urlVal) {
+    row.classList.remove('hidden')
+    document.getElementById('urlPreview').textContent = S.urlVal
+  } else {
+    row.classList.add('hidden')
+  }
+  checkBtn()
+}
+
+function checkBtn() {
+  const ok = S.tab === 'file' ? !!S.file : !!S.urlVal
+  document.getElementById('btnUpload').disabled = !ok
+}
+
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+async function startUpload() {
+  clearErr()
+  document.getElementById('btnUpload').disabled = true
+  document.getElementById('progressCard').classList.add('show')
+  document.getElementById('resultCard').classList.remove('show')
+
+  try {
+    let fileUrl = '', filename = '', fileSize = 0
+
+    if (S.tab === 'url') {
+      fileUrl = S.urlVal
+      filename = S.urlVal.split('/').pop().split('?')[0] || 'media'
+      setProgress(100, 'URL siap!', '—', '—', '—')
+      await new Promise(r => setTimeout(r, 600))
+    } else {
+      const r = await uploadToLitterbox(S.file)
+      fileUrl = r.url; filename = S.file.name; fileSize = S.file.size
+    }
+
+    const caption = document.getElementById('captionInput').value.trim()
+    S.token = makeToken(fileUrl, filename, fileSize, S.mode, caption)
+    S.tokenExpAt = Date.now() + CFG.tokenExpirySec * 1000
+
+    await new Promise(r => setTimeout(r, 500))
+    document.getElementById('progressCard').classList.remove('show')
+    showResult(filename, fileSize)
+
+  } catch (err) {
+    document.getElementById('progressCard').classList.remove('show')
+    showErr('❌ ' + err.message)
+    document.getElementById('btnUpload').disabled = false
+  }
+}
+
+async function uploadToLitterbox(file) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData()
+    fd.append('reqtype', 'fileupload')
+    fd.append('time', '24h')
+    fd.append('fileToUpload', file)
+
+    const xhr = new XMLHttpRequest()
+    let lastLoaded = 0, lastTime = Date.now()
+
+    xhr.upload.addEventListener('progress', e => {
+      if (!e.lengthComputable) return
+      const pct = Math.round(e.loaded / e.total * 100)
+      const now = Date.now(), dt = (now - lastTime) / 1000
+      const spd = dt > 0 ? (e.loaded - lastLoaded) / dt : 0
+      lastLoaded = e.loaded; lastTime = now
+      const rem = spd > 0 ? Math.ceil((e.total - e.loaded) / spd) + 's' : '—'
+      setProgress(pct, 'Mengupload...', rem, fmtSize(spd) + '/s', `${fmtSize(e.loaded)} / ${fmtSize(e.total)}`)
+    })
+
+    xhr.onload = () => {
+      const res = xhr.responseText.trim()
+      if (xhr.status === 200 && res.startsWith('https://'))
+        resolve({ url: res })
+      else
+        reject(new Error('Upload gagal. Coba lagi atau gunakan Via URL.'))
+    }
+    xhr.onerror = () => reject(new Error('Koneksi gagal. Periksa internet kamu.'))
+    xhr.open('POST', 'https://litterbox.catbox.moe/resources/internals/api.php')
+    xhr.send(fd)
+  })
+}
+
+function setProgress(pct, label, time, speed, size) {
+  document.getElementById('progBar').style.width = pct + '%'
+  document.getElementById('progPct').textContent = pct + '%'
+  document.getElementById('progLabel').textContent = label
+  document.getElementById('progTime').textContent = '⏱ ' + time
+  document.getElementById('progSpeed').textContent = '⚡ ' + speed
+  document.getElementById('progSizeVal').textContent = size
+}
+
+// ─── TOKEN ────────────────────────────────────────────────────────────────────
+function makeToken(url, filename, size, mode, caption) {
+  const payload = { url, filename, size, mode, caption,
+    exp: Math.floor(Date.now()/1000) + CFG.tokenExpirySec, v: 3 }
+  const b64 = btoa(JSON.stringify(payload))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'')
+  return `WXAI-${mode.toUpperCase()}-${b64}`
+}
+
+function parseToken(token) {
+  const parts = token.trim().split('-')
+  if (parts.length < 3 || parts[0] !== 'WXAI') throw new Error('Format token tidak valid')
+  const b64 = parts.slice(2).join('-').replace(/-/g,'+').replace(/_/g,'/') + '=='
+  return JSON.parse(atob(b64))
+}
+
+// ─── RESULT ───────────────────────────────────────────────────────────────────
+function showResult(filename, fileSize) {
+  document.getElementById('tokenBox').textContent = S.token
+  document.getElementById('captionResult').value = document.getElementById('captionInput').value
+  document.getElementById('rName').textContent = filename
+  document.getElementById('rSize').textContent = fileSize ? fmtSize(fileSize) : '(dari URL)'
+  document.getElementById('rTime').textContent = new Date().toLocaleTimeString('id-ID')
+  document.getElementById('rMode').textContent = {fast:'🟡 Fast',normal:'🟢 Normal',standard:'🔵 Standard'}[S.mode]
+  document.getElementById('resultCard').classList.add('show')
+
+  if (S.countdown) clearInterval(S.countdown)
+  S.countdown = setInterval(() => {
+    const rem = Math.max(0, S.tokenExpAt - Date.now())
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000)
+    document.getElementById('tokenCountdown').textContent =
+      String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0')
+    if (rem <= 0) clearInterval(S.countdown)
+  }, 1000)
+
+  document.getElementById('resultCard').scrollIntoView({ behavior:'smooth', block:'start' })
+}
+
+function copyToken() {
+  navigator.clipboard.writeText(S.token).then(() => {
+    const btn = document.getElementById('btnCopy')
+    btn.classList.add('copied')
+    btn.textContent = '✅ Token Tersalin!'
+    setTimeout(() => {
+      btn.classList.remove('copied')
+      btn.textContent = '📋 Salin Token Dasar'
+    }, 2500)
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea')
+    ta.value = S.token
+    document.body.appendChild(ta)
+    ta.select(); document.execCommand('copy')
+    document.body.removeChild(ta)
+    const btn = document.getElementById('btnCopy')
+    btn.textContent = '✅ Token Tersalin!'
+    setTimeout(() => { btn.textContent = '📋 Salin Token Dasar' }, 2000)
+  })
+}
+
+function updateCaption() {
+  try {
+    const old = parseToken(S.token)
+    const cap = document.getElementById('captionResult').value.trim()
+    S.token = makeToken(old.url, old.filename, old.size, S.mode, cap)
+    document.getElementById('tokenBox').textContent = S.token
+    const btn = document.getElementById('btnCopy')
+    btn.textContent = '🔄 Token Diupdate — Salin Lagi'
+    btn.classList.remove('copied')
+    setTimeout(() => { btn.textContent = '📋 Salin Token Dasar' }, 2500)
+  } catch (e) { showErr(e.message) }
+}
+
+function clearCaption() {
+  document.getElementById('captionResult').value = ''
+  document.getElementById('charCount2').textContent = '0/150 karakter'
+  updateCaption()
+}
+
+function resetAll() {
+  if (S.countdown) clearInterval(S.countdown)
+  Object.assign(S, { file:null, urlVal:'', rotation:0, token:'', tokenExpAt:0 })
+  document.getElementById('resultCard').classList.remove('show')
+  document.getElementById('progressCard').classList.remove('show')
+  document.getElementById('captionInput').value = ''
+  document.getElementById('urlInput').value = ''
+  document.getElementById('charCount1').textContent = '0/150 karakter'
+  document.getElementById('urlDetailRow').classList.add('hidden')
+  removeFile(null)
+  window.scrollTo({ top:0, behavior:'smooth' })
+}
+
+// ─── TEST TOKEN MODAL ──────────────────────────────────────────────────────────
+function showTestModal() {
+  document.getElementById('testModal').classList.remove('hide')
+}
+function closeTestModal() {
+  document.getElementById('testModal').classList.add('hide')
+}
+function closeModalBg(e) {
+  if (e.target === document.getElementById('testModal')) closeTestModal()
+}
+function doTestToken() {
+  const raw = document.getElementById('testTokenInput').value.trim()
+  const el = document.getElementById('testResult')
+  el.style.display = 'block'
+  if (!raw) { el.style.color = 'var(--red)'; el.textContent = '⚠️ Paste token dulu ya!'; return }
+  try {
+    const p = parseToken(raw)
+    const expired = Date.now()/1000 > p.exp
+    const expStr = new Date(p.exp*1000).toLocaleString('id-ID')
+    el.style.color = expired ? 'var(--red)' : 'var(--teal)'
+    el.textContent =
+      `${expired ? '❌ TOKEN KADALUARSA!' : '✅ Token Valid!'}\n\n` +
+      `URL      : ${p.url}\n` +
+      `File     : ${p.filename}\n` +
+      `Ukuran   : ${p.size ? fmtSize(p.size) : '—'}\n` +
+      `Mode     : ${p.mode}\n` +
+      `Caption  : ${p.caption || '(kosong)'}\n` +
+      `Exp      : ${expStr}\n` +
+      (expired ? '⚠️ Silakan upload ulang di web.' : '⏱ Masih berlaku')
+  } catch (e) {
+    el.style.color = 'var(--red)'
+    el.textContent = '❌ ' + e.message
+  }
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function fmtSize(b) {
+  if (b < 1024) return b + ' B'
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB'
+  return (b/1048576).toFixed(2) + ' MB'
+}
+function showErr(msg) {
+  const el = document.getElementById('errBox')
+  el.textContent = msg; el.classList.add('show')
+}
+function clearErr() {
+  document.getElementById('errBox').classList.remove('show')
+}
+function updateCharCount(inputId, countId) {
+  const len = document.getElementById(inputId).value.length
+  document.getElementById(countId).textContent = `${len}/150 karakter`
+}
+</script>
+</body>
+</html>
